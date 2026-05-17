@@ -3,6 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { FlowWaves } from "@/components/FlowWaves";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import type { Answers } from "@/data/onboarding-questions";
 
 const ease = "easeOut" as const;
 const headline = "beacon.";
@@ -27,7 +29,7 @@ export default function Home() {
     if (!rect) return;
 
     const width = Math.min(window.innerWidth * 0.9, 720);
-    const height = Math.min(window.innerHeight * 0.8, 600);
+    const height = Math.min(window.innerHeight * 0.85, 680);
 
     setPanel({
       fromX: rect.left + rect.width / 2 - 32,
@@ -159,12 +161,13 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, ease, delay: 0.55 }}
-            className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+            className="absolute inset-0 overflow-y-auto"
           >
-            <span className="text-sm text-white/70">question 1 of 8</span>
-            <h2 className="mt-3 text-4xl font-medium text-white sm:text-5xl">
-              what&apos;s your current grade?
-            </h2>
+            <OnboardingWizard
+              onComplete={(answers: Answers) => {
+                console.log("Onboarding complete:", answers);
+              }}
+            />
           </motion.div>
         </motion.div>
       )}
