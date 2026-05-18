@@ -25,7 +25,7 @@ export default function SignupPage() {
       >
         <Link
           href="/"
-          className="block text-center text-2xl font-semibold tracking-tight text-neutral-900"
+          className="font-display block text-center text-2xl font-semibold tracking-tight text-neutral-900"
         >
           beacon
         </Link>

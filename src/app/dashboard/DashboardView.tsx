@@ -12,7 +12,7 @@ export function DashboardView({ email }: { email: string }) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease }}
-        className="text-2xl font-semibold tracking-tight text-neutral-900"
+        className="font-display text-2xl font-semibold tracking-tight text-neutral-900"
       >
         beacon
       </motion.h2>
@@ -21,7 +21,7 @@ export function DashboardView({ email }: { email: string }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease, delay: 0.15 }}
-        className="mt-16 text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl"
+        className="font-display mt-16 text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl"
       >
         welcome, {email}
       </motion.h1>

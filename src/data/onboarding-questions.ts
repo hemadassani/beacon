@@ -93,12 +93,12 @@ export const questions: Question[] = [
       {
         value: "sat",
         label: "I took the SAT",
-        withNumber: { placeholder: "SAT score (400–1600)", min: 400, max: 1600 },
+        withNumber: { placeholder: "SAT score (400-1600)", min: 400, max: 1600 },
       },
       {
         value: "act",
         label: "I took the ACT",
-        withNumber: { placeholder: "ACT score (1–36)", min: 1, max: 36 },
+        withNumber: { placeholder: "ACT score (1-36)", min: 1, max: 36 },
       },
       { value: "planning", label: "Planning to take one" },
       { value: "not_taking", label: "Not taking either" },
@@ -116,17 +116,17 @@ export const questions: Question[] = [
       {
         value: "toefl",
         label: "TOEFL",
-        withNumber: { placeholder: "TOEFL score (0–120)", min: 0, max: 120 },
+        withNumber: { placeholder: "TOEFL score (0-120)", min: 0, max: 120 },
       },
       {
         value: "ielts",
         label: "IELTS",
-        withNumber: { placeholder: "IELTS score (0–9)", min: 0, max: 9 },
+        withNumber: { placeholder: "IELTS score (0-9)", min: 0, max: 9 },
       },
       {
         value: "duolingo",
         label: "Duolingo English Test",
-        withNumber: { placeholder: "Duolingo score (0–160)", min: 0, max: 160 },
+        withNumber: { placeholder: "Duolingo score (0-160)", min: 0, max: 160 },
       },
       { value: "native", label: "Native English speaker" },
       { value: "not_taken", label: "Haven't taken one yet" },
@@ -135,7 +135,7 @@ export const questions: Question[] = [
   {
     id: "major",
     question: "what do you want to study?",
-    subtitle: "Pick the closest match — you can change your mind later.",
+    subtitle: "Pick the closest match. You can change your mind later.",
     type: "searchable-single-select",
     required: true,
     options: majors,
@@ -143,7 +143,7 @@ export const questions: Question[] = [
   {
     id: "ec_peak",
     question: "what's the highest level of recognition for your activities?",
-    subtitle: "Think competitions, awards, leadership — anything notable.",
+    subtitle: "Think competitions, awards, leadership. Anything notable.",
     type: "single-select",
     required: false,
     options: [
@@ -157,7 +157,7 @@ export const questions: Question[] = [
   {
     id: "independent_initiative",
     question: "have you led an independent project?",
-    subtitle: "Research, a startup, nonprofit, app, original work — anything you started yourself.",
+    subtitle: "Research, a startup, nonprofit, app, original work. Anything you started yourself.",
     type: "single-select",
     required: false,
     options: [
@@ -188,7 +188,7 @@ export const questions: Question[] = [
     type: "single-select",
     required: true,
     options: [
-      { value: "significant", label: "Significant aid — I can't attend without it" },
+      { value: "significant", label: "Significant aid (I can't attend without it)" },
       { value: "some", label: "Some aid would help" },
       { value: "merit_only", label: "Merit scholarships only" },
       { value: "full_pay", label: "No aid needed (full pay)" },
@@ -197,7 +197,7 @@ export const questions: Question[] = [
   {
     id: "universities",
     question: "which schools are on your list?",
-    subtitle: "Pick 1–5 you're seriously considering. Add others by name if you don't see them.",
+    subtitle: "Pick 1-5 you're seriously considering. Add others by name if you don't see them.",
     type: "searchable-multi-select",
     required: true,
     minSelection: 1,

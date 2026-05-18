@@ -79,7 +79,7 @@ export default function Home() {
           >
             <h1
               aria-label={headline}
-              className="text-6xl font-semibold tracking-tight text-neutral-900 sm:text-7xl"
+              className="font-display text-6xl font-semibold tracking-tight text-neutral-900 sm:text-7xl"
             >
               {headline.split("").map((char, i) => (
                 <motion.span
