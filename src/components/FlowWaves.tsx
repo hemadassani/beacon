@@ -10,15 +10,12 @@ const BAND2_PATH =
 
 type Line = { yOffset: number; opacity: number };
 
-const band1Lines: Line[] = Array.from({ length: 40 }, (_, i) => ({
-  yOffset: (i - 19.5) * 4.5,
-  opacity: 0.4 - (i / 39) * (0.4 - 0.08),
-}));
-
-const band2Lines: Line[] = Array.from({ length: 20 }, (_, i) => ({
-  yOffset: (i - 9.5) * 4.5,
-  opacity: 0.3 - (i / 19) * (0.3 - 0.06),
-}));
+function buildBand(count: number, peak: number, floor: number): Line[] {
+  return Array.from({ length: count }, (_, i) => ({
+    yOffset: (i - (count - 1) / 2) * 4.5,
+    opacity: peak - (i / Math.max(1, count - 1)) * (peak - floor),
+  }));
+}
 
 type BandProps = {
   top: string;
@@ -83,11 +80,36 @@ function Band({
   );
 }
 
-export function FlowWaves() {
+interface FlowWavesProps {
+  variant?: "hero" | "ambient";
+  opacity?: number;
+}
+
+const PRESETS = {
+  hero: {
+    band1Count: 40,
+    band2Count: 20,
+    driftDuration1: 20,
+    driftDuration2: 30,
+  },
+  ambient: {
+    band1Count: 25,
+    band2Count: 12,
+    driftDuration1: 40,
+    driftDuration2: 40,
+  },
+} as const;
+
+export function FlowWaves({ variant = "hero", opacity = 1 }: FlowWavesProps) {
+  const preset = PRESETS[variant];
+  const band1Lines = buildBand(preset.band1Count, 0.4, 0.08);
+  const band2Lines = buildBand(preset.band2Count, 0.3, 0.06);
+
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 overflow-hidden"
+      style={{ opacity }}
     >
       <Band
         top="25%"
@@ -96,7 +118,7 @@ export function FlowWaves() {
         path={BAND2_PATH}
         lines={band2Lines}
         driftTo="25%"
-        driftDuration={30}
+        driftDuration={preset.driftDuration2}
         undulateAmp={20}
         undulateDuration={9}
       />
@@ -107,7 +129,7 @@ export function FlowWaves() {
         path={BAND1_PATH}
         lines={band1Lines}
         driftTo="33.3333%"
-        driftDuration={20}
+        driftDuration={preset.driftDuration1}
         undulateAmp={22}
         undulateDuration={12}
       />

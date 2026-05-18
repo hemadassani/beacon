@@ -47,6 +47,8 @@ public/                    static assets (favicon, og images)
 - **No comments that just restate the code.** Comments are reserved for non-obvious *why* (a constraint, a workaround, an invariant).
 - **Async/await over `.then()` chains.** Throw real `Error`s; never throw strings.
 - **Small focused files; small focused functions.** One responsibility each.
+- **No em dashes or en dashes in user-facing text or code comments.** Use commas, periods, parentheses, or restructure the sentence. Hyphens in compound words like `single-select` are fine.
+- **Brand wordmark.** The product wordmark is always lowercase `beacon.` with a trailing period.
 
 ## Design principles
 

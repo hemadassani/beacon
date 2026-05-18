@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { FlowWaves } from "@/components/FlowWaves";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
@@ -8,6 +9,7 @@ import type { Answers } from "@/data/onboarding-questions";
 
 const ease = "easeOut" as const;
 const headline = "beacon.";
+const WIZARD_STORAGE_KEY = "beacon_wizard_answers";
 
 type PanelGeometry = {
   fromX: number;
@@ -19,9 +21,26 @@ type PanelGeometry = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [view, setView] = useState<"hero" | "onboarding">("hero");
   const [panel, setPanel] = useState<PanelGeometry | null>(null);
+  const [exiting, setExiting] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  function handleWizardComplete(answers: Answers) {
+    try {
+      window.localStorage.setItem(
+        WIZARD_STORAGE_KEY,
+        JSON.stringify(answers),
+      );
+    } catch (err) {
+      console.error("Failed to persist wizard answers:", err);
+    }
+    setExiting(true);
+    window.setTimeout(() => {
+      router.push("/dashboard");
+    }, 1000);
+  }
 
   function handleCta() {
     if (view !== "hero") return;
@@ -146,28 +165,33 @@ export default function Home() {
             height: 64,
             left: panel.fromX,
             top: panel.fromY,
+            scale: 1,
+            opacity: 1,
           }}
-          animate={{
-            width: panel.width,
-            height: panel.height,
-            left: panel.toX,
-            top: panel.toY,
+          animate={
+            exiting
+              ? { scale: 0.3, opacity: 0 }
+              : {
+                  width: panel.width,
+                  height: panel.height,
+                  left: panel.toX,
+                  top: panel.toY,
+                }
+          }
+          transition={{
+            duration: exiting ? 1 : 0.6,
+            ease: exiting ? "easeInOut" : "easeInOut",
           }}
-          transition={{ duration: 0.6, ease: "easeInOut" }}
-          style={{ borderRadius: 32 }}
+          style={{ borderRadius: 32, transformOrigin: "center center" }}
           className="fixed z-20 overflow-hidden bg-[#4F46E5] shadow-[0_24px_60px_-12px_rgba(79,70,229,0.4),0_8px_24px_-8px_rgba(0,0,0,0.15)]"
         >
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3, ease, delay: 0.55 }}
+            animate={{ opacity: exiting ? 0 : 1 }}
+            transition={{ duration: 0.3, ease, delay: exiting ? 0 : 0.55 }}
             className="absolute inset-0 overflow-y-auto"
           >
-            <OnboardingWizard
-              onComplete={(answers: Answers) => {
-                console.log("Onboarding complete:", answers);
-              }}
-            />
+            <OnboardingWizard onComplete={handleWizardComplete} />
           </motion.div>
         </motion.div>
       )}
