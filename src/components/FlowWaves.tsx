@@ -8,6 +8,9 @@ const BAND1_PATH =
 const BAND2_PATH =
   "M -300 75 Q -225 50 -150 75 T 0 75 T 150 75 T 300 75 T 450 75 T 600 75 T 750 75 T 900 75 T 1050 75 T 1200 75 T 1350 75 T 1500 75";
 
+const BAND3_PATH =
+  "M -300 50 Q -250 30 -200 50 T -100 50 T 0 50 T 100 50 T 200 50 T 300 50 T 400 50 T 500 50 T 600 50 T 700 50 T 800 50 T 900 50 T 1000 50 T 1100 50 T 1200 50 T 1300 50 T 1400 50 T 1500 50";
+
 type Line = { yOffset: number; opacity: number };
 
 function buildBand(count: number, peak: number, floor: number): Line[] {
@@ -17,7 +20,125 @@ function buildBand(count: number, peak: number, floor: number): Line[] {
   }));
 }
 
-type BandProps = {
+interface BandConfig {
+  top: string;
+  height: number;
+  viewBoxHeight: number;
+  path: string;
+  count: number;
+  peakOpacity: number;
+  floorOpacity: number;
+  driftTo: string;
+  driftDuration: number;
+  undulateAmp: number;
+  undulateDuration: number;
+}
+
+const VARIANTS: Record<"hero" | "ambient", BandConfig[]> = {
+  hero: [
+    {
+      top: "25%",
+      height: 150,
+      viewBoxHeight: 150,
+      path: BAND2_PATH,
+      count: 20,
+      peakOpacity: 0.3,
+      floorOpacity: 0.06,
+      driftTo: "25%",
+      driftDuration: 30,
+      undulateAmp: 20,
+      undulateDuration: 9,
+    },
+    {
+      top: "55%",
+      height: 250,
+      viewBoxHeight: 250,
+      path: BAND1_PATH,
+      count: 40,
+      peakOpacity: 0.4,
+      floorOpacity: 0.08,
+      driftTo: "33.3333%",
+      driftDuration: 20,
+      undulateAmp: 22,
+      undulateDuration: 12,
+    },
+  ],
+  ambient: [
+    {
+      top: "12%",
+      height: 120,
+      viewBoxHeight: 120,
+      path: BAND3_PATH,
+      count: 15,
+      peakOpacity: 0.45,
+      floorOpacity: 0.1,
+      driftTo: "20%",
+      driftDuration: 10,
+      undulateAmp: 14,
+      undulateDuration: 8,
+    },
+    {
+      top: "45%",
+      height: 180,
+      viewBoxHeight: 180,
+      path: BAND2_PATH,
+      count: 40,
+      peakOpacity: 0.4,
+      floorOpacity: 0.1,
+      driftTo: "25%",
+      driftDuration: 14,
+      undulateAmp: 22,
+      undulateDuration: 10,
+    },
+    {
+      top: "75%",
+      height: 250,
+      viewBoxHeight: 250,
+      path: BAND1_PATH,
+      count: 40,
+      peakOpacity: 0.35,
+      floorOpacity: 0.08,
+      driftTo: "33.3333%",
+      driftDuration: 18,
+      undulateAmp: 24,
+      undulateDuration: 12,
+    },
+  ],
+};
+
+interface FlowWavesProps {
+  variant?: "hero" | "ambient";
+  opacity?: number;
+}
+
+export function FlowWaves({ variant = "hero", opacity = 1 }: FlowWavesProps) {
+  const bands = VARIANTS[variant];
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      style={{ opacity }}
+    >
+      {bands.map((b, i) => (
+        <Band
+          key={i}
+          top={b.top}
+          height={b.height}
+          viewBoxHeight={b.viewBoxHeight}
+          path={b.path}
+          lines={buildBand(b.count, b.peakOpacity, b.floorOpacity)}
+          driftTo={b.driftTo}
+          driftDuration={b.driftDuration}
+          undulateAmp={b.undulateAmp}
+          undulateDuration={b.undulateDuration}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface BandProps {
   top: string;
   height: number;
   viewBoxHeight: number;
@@ -27,7 +148,7 @@ type BandProps = {
   driftDuration: number;
   undulateAmp: number;
   undulateDuration: number;
-};
+}
 
 function Band({
   top,
@@ -77,62 +198,5 @@ function Band({
         />
       ))}
     </motion.svg>
-  );
-}
-
-interface FlowWavesProps {
-  variant?: "hero" | "ambient";
-  opacity?: number;
-}
-
-const PRESETS = {
-  hero: {
-    band1Count: 40,
-    band2Count: 20,
-    driftDuration1: 20,
-    driftDuration2: 30,
-  },
-  ambient: {
-    band1Count: 25,
-    band2Count: 12,
-    driftDuration1: 40,
-    driftDuration2: 40,
-  },
-} as const;
-
-export function FlowWaves({ variant = "hero", opacity = 1 }: FlowWavesProps) {
-  const preset = PRESETS[variant];
-  const band1Lines = buildBand(preset.band1Count, 0.4, 0.08);
-  const band2Lines = buildBand(preset.band2Count, 0.3, 0.06);
-
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden"
-      style={{ opacity }}
-    >
-      <Band
-        top="25%"
-        height={150}
-        viewBoxHeight={150}
-        path={BAND2_PATH}
-        lines={band2Lines}
-        driftTo="25%"
-        driftDuration={preset.driftDuration2}
-        undulateAmp={20}
-        undulateDuration={9}
-      />
-      <Band
-        top="55%"
-        height={250}
-        viewBoxHeight={250}
-        path={BAND1_PATH}
-        lines={band1Lines}
-        driftTo="33.3333%"
-        driftDuration={preset.driftDuration1}
-        undulateAmp={22}
-        undulateDuration={12}
-      />
-    </div>
   );
 }

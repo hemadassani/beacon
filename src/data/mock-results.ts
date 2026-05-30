@@ -1,5 +1,7 @@
 export type Tier = "safety" | "target" | "reach";
 
+export type EstimationConfidence = "high" | "medium" | "low";
+
 export interface Percentiles {
   p25: number;
   p50: number;
@@ -20,6 +22,8 @@ export interface UniversityResult {
   user_sat: number;
   user_gpa_equivalent: number;
   profile_match: number;
+  fallback_estimated: boolean;
+  estimation_confidence?: EstimationConfidence;
 }
 
 export interface ProfileStrength {
@@ -58,6 +62,7 @@ export function getMockResults(): MockResults {
         user_sat: 1480,
         user_gpa_equivalent: 88,
         profile_match: 35,
+        fallback_estimated: false,
       },
       {
         university_id: "nyu",
@@ -78,6 +83,7 @@ export function getMockResults(): MockResults {
         user_sat: 1480,
         user_gpa_equivalent: 88,
         profile_match: 55,
+        fallback_estimated: false,
       },
       {
         university_id: "ucla",
@@ -98,6 +104,7 @@ export function getMockResults(): MockResults {
         user_sat: 1480,
         user_gpa_equivalent: 88,
         profile_match: 50,
+        fallback_estimated: false,
       },
     ],
     overall_recommendations: [

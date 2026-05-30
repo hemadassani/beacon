@@ -60,6 +60,34 @@ export function convertGradeToGpaEquivalent(
   return 75;
 }
 
+// Display helper: convert a 0-100 percentage grade into an approximate
+// US 4.0 GPA for UI readouts. This is a stepwise mapping calibrated so
+// CBSE/ICSE 88% lands near 3.75, matching how counselors translate
+// Indian percentage grades for US admissions.
+const GPA_TABLE: ReadonlyArray<readonly [number, number]> = [
+  [0, 0],
+  [70, 3.0],
+  [75, 3.2],
+  [80, 3.4],
+  [85, 3.6],
+  [90, 3.85],
+  [95, 4.0],
+  [100, 4.0],
+];
+
+export function percentToGpa4(pct: number): number {
+  const p = Math.max(0, Math.min(100, pct));
+  for (let i = 1; i < GPA_TABLE.length; i++) {
+    const [pLo, gLo] = GPA_TABLE[i - 1];
+    const [pHi, gHi] = GPA_TABLE[i];
+    if (p <= pHi) {
+      if (pHi === pLo) return gHi;
+      return gLo + ((p - pLo) / (pHi - pLo)) * (gHi - gLo);
+    }
+  }
+  return 4.0;
+}
+
 // ----------------------------------------------------------------------
 // 2. Hook bonus (percentage-point adjustment)
 // ----------------------------------------------------------------------

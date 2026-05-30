@@ -25,7 +25,7 @@ export function DashboardBackdrop() {
         </defs>
         <rect width="100%" height="100%" fill="url(#beacon-grid-dash)" />
       </svg>
-      <FlowWaves variant="ambient" opacity={0.5} />
+      <FlowWaves variant="ambient" />
     </div>
   );
 }

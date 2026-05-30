@@ -1,10 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ArrowRightLeft, ChevronDown, Info } from "lucide-react";
 import { useState } from "react";
 import { UniversityLogo } from "@/components/dashboard/UniversityLogo";
-import type { Percentiles, Tier, UniversityResult } from "@/data/mock-results";
+import { percentToGpa4 } from "@/lib/scoring/heuristic";
+import type { Tier, UniversityResult } from "@/data/mock-results";
 
 interface TierStyle {
   bg: string;
@@ -13,6 +14,7 @@ interface TierStyle {
   muted: string;
   label: string;
   trackBg: string;
+  pillBg: string;
 }
 
 const TIER_STYLES: Record<Tier, TierStyle> = {
@@ -23,6 +25,7 @@ const TIER_STYLES: Record<Tier, TierStyle> = {
     muted: "#4A5A4F",
     label: "SAFETY",
     trackBg: "rgba(15, 110, 86, 0.15)",
+    pillBg: "rgba(15, 110, 86, 0.2)",
   },
   target: {
     bg: "#FAEEDA",
@@ -31,6 +34,7 @@ const TIER_STYLES: Record<Tier, TierStyle> = {
     muted: "#5A4A2F",
     label: "TARGET",
     trackBg: "rgba(133, 79, 11, 0.15)",
+    pillBg: "rgba(133, 79, 11, 0.2)",
   },
   reach: {
     bg: "#FBEAF0",
@@ -39,7 +43,22 @@ const TIER_STYLES: Record<Tier, TierStyle> = {
     muted: "#6A2D43",
     label: "REACH",
     trackBg: "rgba(153, 53, 86, 0.15)",
+    pillBg: "rgba(153, 53, 86, 0.2)",
   },
+};
+
+type Interp = "below" | "middle" | "above";
+
+const INTERP_LABELS: Record<Interp, string> = {
+  below: "below 25th percentile",
+  middle: "in middle 50%",
+  above: "above 75th percentile",
+};
+
+const INTERP_COLORS: Record<Interp, string> = {
+  below: "#B83263",
+  middle: "#B07E18",
+  above: "#1F8B5C",
 };
 
 interface UniversityCardProps {
@@ -52,17 +71,18 @@ export function UniversityCard({ result, index }: UniversityCardProps) {
   const style = TIER_STYLES[result.tier];
   const percent = Math.round(result.probability * 100);
   const ringDelay = index * 0.2;
-  const userGpa4 = (result.user_gpa_equivalent / 100) * 4.0;
+  const userGpa4 = percentToGpa4(result.user_gpa_equivalent);
+  const shortName = shortSchoolName(result.university_name);
 
   return (
     <div
       className="w-full rounded-3xl"
       style={{ backgroundColor: style.bg, padding: 22 }}
     >
-      <div className="flex flex-col gap-6 md:flex-row">
-        {/* LEFT COLUMN */}
+      <div className="flex flex-col gap-6 md:flex-row md:items-stretch">
+        {/* LEFT COLUMN (vertically centered) */}
         <div
-          className="flex flex-col items-center"
+          className="flex flex-col items-center justify-center"
           style={{ flexBasis: "28%" }}
         >
           <ProbabilityRing
@@ -82,9 +102,10 @@ export function UniversityCard({ result, index }: UniversityCardProps) {
             Admission odds
           </div>
           <TierBadge style={style} />
+          {result.fallback_estimated ? <EstimatedBadge /> : null}
         </div>
 
-        {/* MIDDLE COLUMN */}
+        {/* MIDDLE COLUMN (top-aligned) */}
         <div className="min-w-0 flex-1" style={{ flexBasis: "50%" }}>
           <div
             className="font-medium leading-tight"
@@ -96,29 +117,35 @@ export function UniversityCard({ result, index }: UniversityCardProps) {
             {result.location}
           </div>
 
-          <div className="mt-4 flex flex-col gap-2">
-            <ComparisonBar
+          <div className="mt-4 flex flex-col gap-[14px]">
+            <StatRow
               label="SAT"
-              percentiles={result.sat_percentiles}
-              userValue={result.user_sat}
-              formatTick={(v) => Math.round(v).toString()}
-              formatUser={(v) => `you ${Math.round(v)}`}
+              userText={result.user_sat.toString()}
+              rangeText={`${result.sat_percentiles.p25} to ${result.sat_percentiles.p75}`}
+              interp={classify(
+                result.user_sat,
+                result.sat_percentiles.p25,
+                result.sat_percentiles.p75,
+              )}
+              shortName={shortName}
               style={style}
-              animationDelay={ringDelay + 0.2}
             />
-            <ComparisonBar
+            <StatRow
               label="GRADE"
-              percentiles={result.gpa_percentiles}
-              userValue={userGpa4}
-              formatTick={(v) => v.toFixed(2)}
-              formatUser={(v) => `you ${v.toFixed(2)}`}
+              userText={userGpa4.toFixed(2)}
+              rangeText={`${result.gpa_percentiles.p25.toFixed(2)} to ${result.gpa_percentiles.p75.toFixed(2)}`}
+              interp={classify(
+                userGpa4,
+                result.gpa_percentiles.p25,
+                result.gpa_percentiles.p75,
+              )}
+              shortName={shortName}
               style={style}
-              animationDelay={ringDelay + 0.3}
             />
           </div>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* RIGHT COLUMN (top-aligned) */}
         <div
           className="flex flex-col items-end"
           style={{ flexBasis: "22%" }}
@@ -173,7 +200,9 @@ export function UniversityCard({ result, index }: UniversityCardProps) {
         >
           <ChevronDown size={14} />
         </motion.span>
-        {expanded ? "hide reasoning and recommendations" : "view reasoning and recommendations"}
+        {expanded
+          ? "hide reasoning and recommendations"
+          : "view reasoning and recommendations"}
       </button>
 
       <AnimatePresence initial={false}>
@@ -225,6 +254,37 @@ export function UniversityCard({ result, index }: UniversityCardProps) {
   );
 }
 
+function classify(value: number, p25: number, p75: number): Interp {
+  if (value < p25) return "below";
+  if (value >= p75) return "above";
+  return "middle";
+}
+
+function shortSchoolName(full: string): string {
+  const stripped = full
+    .replace(/\s*\b(University|College|Institute)\b.*$/i, "")
+    .trim();
+  return stripped || full;
+}
+
+function EstimatedBadge() {
+  return (
+    <span
+      className="mt-2 inline-flex items-center gap-1 italic"
+      style={{
+        fontSize: 10,
+        letterSpacing: "0.08em",
+        color: "#8B8B97",
+        textTransform: "uppercase",
+      }}
+      title="We're estimating this university's data based on Claude's knowledge. Hardcoded data coming soon."
+    >
+      Estimated data
+      <Info size={11} aria-hidden />
+    </span>
+  );
+}
+
 function TierBadge({ style }: { style: TierStyle }) {
   return (
     <span
@@ -242,6 +302,88 @@ function TierBadge({ style }: { style: TierStyle }) {
       />
       {style.label}
     </span>
+  );
+}
+
+interface StatRowProps {
+  label: string;
+  userText: string;
+  rangeText: string;
+  interp: Interp;
+  shortName: string;
+  style: TierStyle;
+}
+
+function StatRow({
+  label,
+  userText,
+  rangeText,
+  interp,
+  shortName,
+  style,
+}: StatRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div
+        className="font-semibold uppercase"
+        style={{
+          fontSize: 11,
+          letterSpacing: "0.14em",
+          color: style.muted,
+          minWidth: 56,
+        }}
+      >
+        {label}
+      </div>
+
+      <div className="flex items-end gap-3">
+        <PillStack caption="you" value={userText} style={style} />
+        <ArrowRightLeft
+          size={14}
+          style={{ color: style.muted, marginBottom: 6 }}
+          aria-hidden
+        />
+        <PillStack
+          caption={`${shortName} range`}
+          value={rangeText}
+          style={style}
+        />
+      </div>
+
+      <div
+        className="ml-auto whitespace-nowrap italic"
+        style={{ fontSize: 12, color: INTERP_COLORS[interp] }}
+      >
+        {INTERP_LABELS[interp]}
+      </div>
+    </div>
+  );
+}
+
+function PillStack({
+  caption,
+  value,
+  style,
+}: {
+  caption: string;
+  value: string;
+  style: TierStyle;
+}) {
+  return (
+    <div className="flex flex-col items-center">
+      <span style={{ fontSize: 10, color: style.muted }}>{caption}</span>
+      <span
+        className="mt-0.5 rounded-full font-medium"
+        style={{
+          fontSize: 12,
+          padding: "2px 10px",
+          backgroundColor: style.pillBg,
+          color: style.dark,
+        }}
+      >
+        {value}
+      </span>
+    </div>
   );
 }
 
@@ -338,120 +480,6 @@ function ProfileMatchBar({
       </div>
       <div className="mt-1" style={{ fontSize: 12, color: mutedColor }}>
         {clamped}% complete
-      </div>
-    </div>
-  );
-}
-
-interface ComparisonBarProps {
-  label: string;
-  percentiles: Percentiles;
-  userValue: number;
-  formatTick: (v: number) => string;
-  formatUser: (v: number) => string;
-  style: TierStyle;
-  animationDelay: number;
-}
-
-function ComparisonBar({
-  label,
-  percentiles,
-  userValue,
-  formatTick,
-  formatUser,
-  style,
-  animationDelay,
-}: ComparisonBarProps) {
-  const all = [percentiles.p25, percentiles.p50, percentiles.p75, userValue];
-  const minVal = Math.min(...all);
-  const maxVal = Math.max(...all);
-  const padding = (maxVal - minVal) * 0.2 || 1;
-  const lo = minVal - padding;
-  const hi = maxVal + padding;
-  const range = hi - lo;
-  const pos = (v: number) => ((v - lo) / range) * 100;
-
-  const userPos = pos(userValue);
-
-  return (
-    <div>
-      <div
-        className="font-semibold uppercase"
-        style={{
-          fontSize: 11,
-          letterSpacing: "0.14em",
-          color: style.muted,
-        }}
-      >
-        {label}
-      </div>
-      <div className="relative mt-3 mb-1">
-        <div
-          className="w-full rounded-full"
-          style={{ height: 6, backgroundColor: style.trackBg }}
-        />
-        {[percentiles.p25, percentiles.p50, percentiles.p75].map((v) => (
-          <span
-            key={v}
-            aria-hidden
-            className="absolute"
-            style={{
-              top: -2,
-              height: 10,
-              width: 1.5,
-              left: `${pos(v)}%`,
-              backgroundColor: style.muted,
-              transform: "translateX(-50%)",
-              opacity: 0.6,
-            }}
-          />
-        ))}
-        <motion.span
-          aria-hidden
-          className="absolute rounded-full"
-          style={{
-            top: -3,
-            height: 12,
-            width: 12,
-            backgroundColor: style.ring,
-            border: "2px solid white",
-            transform: "translateX(-50%)",
-          }}
-          initial={{ left: "0%", opacity: 0 }}
-          animate={{ left: `${userPos}%`, opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: animationDelay }}
-        />
-        <motion.span
-          className="absolute font-medium"
-          style={{
-            top: -22,
-            fontSize: 10,
-            color: style.dark,
-            transform: "translateX(-50%)",
-            whiteSpace: "nowrap",
-          }}
-          initial={{ left: "0%", opacity: 0 }}
-          animate={{ left: `${userPos}%`, opacity: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: animationDelay }}
-        >
-          {formatUser(userValue)}
-        </motion.span>
-      </div>
-      <div className="relative" style={{ height: 14 }}>
-        {[percentiles.p25, percentiles.p50, percentiles.p75].map((v) => (
-          <span
-            key={v}
-            className="absolute"
-            style={{
-              fontSize: 10,
-              color: style.muted,
-              left: `${pos(v)}%`,
-              transform: "translateX(-50%)",
-            }}
-          >
-            {formatTick(v)}
-          </span>
-        ))}
       </div>
     </div>
   );

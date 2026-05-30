@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useActionState } from "react";
+import { AuthDivider } from "@/components/auth/AuthDivider";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { loginAction, type LoginState } from "./actions";
 
 const ease = "easeOut" as const;
@@ -34,7 +36,15 @@ export default function LoginPage() {
           welcome back
         </h1>
 
-        <form action={formAction} className="mt-8 flex flex-col gap-4">
+        <div className="mt-8">
+          <GoogleSignInButton />
+        </div>
+
+        <div className="mt-6">
+          <AuthDivider />
+        </div>
+
+        <form action={formAction} className="mt-6 flex flex-col gap-4">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-neutral-700">
             Email
             <input

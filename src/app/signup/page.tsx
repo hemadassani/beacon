@@ -2,14 +2,37 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
+import { AuthDivider } from "@/components/auth/AuthDivider";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import {
+  SCORING_RESULTS_KEY,
+  WIZARD_ANSWERS_KEY,
+  isScoringResults,
+} from "@/types/scoring";
 import { signupAction, type SignupState } from "./actions";
 
 const ease = "easeOut" as const;
-const initialState: SignupState = { error: null };
+const initialState: SignupState = { error: null, ok: false };
 
 export default function SignupPage() {
-  const [state, formAction, pending] = useActionState(signupAction, initialState);
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState(
+    signupAction,
+    initialState,
+  );
+  const [migrating, setMigrating] = useState(false);
+  const [migrateError, setMigrateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!state.ok || migrating) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot trigger after server-action success
+    setMigrating(true);
+    void migrateAndRedirect(router, setMigrateError);
+  }, [state.ok, migrating, router]);
+
+  const busy = pending || migrating;
 
   return (
     <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[#FAFAF7] px-6 py-16">
@@ -27,14 +50,22 @@ export default function SignupPage() {
           href="/"
           className="font-display block text-center text-2xl font-semibold tracking-tight text-neutral-900"
         >
-          beacon
+          beacon.
         </Link>
 
         <h1 className="mt-8 text-center text-3xl font-semibold tracking-tight text-neutral-900">
           create your account
         </h1>
 
-        <form action={formAction} className="mt-8 flex flex-col gap-4">
+        <div className="mt-8">
+          <GoogleSignInButton />
+        </div>
+
+        <div className="mt-6">
+          <AuthDivider />
+        </div>
+
+        <form action={formAction} className="mt-6 flex flex-col gap-4">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-neutral-700">
             Email
             <input
@@ -63,13 +94,22 @@ export default function SignupPage() {
               {state.error}
             </p>
           )}
+          {migrateError && (
+            <p role="alert" className="text-sm text-red-600">
+              {migrateError}
+            </p>
+          )}
 
           <button
             type="submit"
-            disabled={pending}
+            disabled={busy}
             className="mt-2 inline-flex h-12 items-center justify-center rounded-full bg-indigo-700 px-8 text-base font-medium text-white shadow-md transition duration-200 hover:scale-105 hover:bg-indigo-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-700"
           >
-            {pending ? "Creating account…" : "Sign up"}
+            {migrating
+              ? "Migrating your data..."
+              : pending
+                ? "Creating account..."
+                : "Sign up"}
           </button>
         </form>
 
@@ -85,4 +125,52 @@ export default function SignupPage() {
       </motion.main>
     </div>
   );
+}
+
+async function migrateAndRedirect(
+  router: ReturnType<typeof useRouter>,
+  setError: (msg: string | null) => void,
+) {
+  let answers: unknown = null;
+  let results: unknown = null;
+  try {
+    const rawAnswers = window.localStorage.getItem(WIZARD_ANSWERS_KEY);
+    const rawResults = window.localStorage.getItem(SCORING_RESULTS_KEY);
+    if (rawAnswers) answers = JSON.parse(rawAnswers);
+    if (rawResults) results = JSON.parse(rawResults);
+  } catch (err) {
+    console.error("Failed to parse cached anonymous data:", err);
+  }
+
+  if (!answers) {
+    router.replace("/");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/migrate-anonymous-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        answers,
+        results: isScoringResults(results) ? results : undefined,
+      }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(body.error ?? `Migration failed (${res.status})`);
+      return;
+    }
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Migration failed");
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(WIZARD_ANSWERS_KEY);
+    window.localStorage.removeItem(SCORING_RESULTS_KEY);
+  } catch {
+    // non-fatal
+  }
+  router.replace("/dashboard");
 }

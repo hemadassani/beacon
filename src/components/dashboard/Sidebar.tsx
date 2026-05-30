@@ -11,6 +11,7 @@ import {
   User,
   type LucideIcon,
 } from "lucide-react";
+import { RefreshAnalysisButton } from "@/components/dashboard/RefreshAnalysisButton";
 
 interface NavItem {
   id: string;
@@ -80,6 +81,12 @@ export function Sidebar({ userIdentity, isAnonymous }: SidebarProps) {
           />
         ))}
       </nav>
+
+      {!isAnonymous ? (
+        <div className="mt-3">
+          <RefreshAnalysisButton />
+        </div>
+      ) : null}
 
       <div className="mt-auto pt-4">
         <div className="mb-3 h-px w-full bg-[#EFECE2]" />

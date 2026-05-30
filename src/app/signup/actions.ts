@@ -1,9 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export type SignupState = { error: string | null };
+export type SignupState = { error: string | null; ok: boolean };
 
 export async function signupAction(
   _prevState: SignupState,
@@ -16,8 +15,8 @@ export async function signupAction(
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    return { error: error.message };
+    return { error: error.message, ok: false };
   }
 
-  redirect("/dashboard");
+  return { error: null, ok: true };
 }

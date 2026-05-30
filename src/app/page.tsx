@@ -6,10 +6,32 @@ import { useRef, useState } from "react";
 import { FlowWaves } from "@/components/FlowWaves";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import type { Answers } from "@/data/onboarding-questions";
+import {
+  SCORING_RESULTS_KEY,
+  WIZARD_ANSWERS_KEY,
+  type ScoringResults,
+} from "@/types/scoring";
 
 const ease = "easeOut" as const;
 const headline = "beacon.";
-const WIZARD_STORAGE_KEY = "beacon_wizard_answers";
+
+type WizardState = "answering" | "loading" | "error";
+
+function toApiAnswers(answers: Answers): Answers {
+  const unis = answers.universities as
+    | { selected?: string[]; other?: string }
+    | string[]
+    | undefined;
+  let universities: string[];
+  if (Array.isArray(unis)) {
+    universities = unis;
+  } else if (unis?.selected) {
+    universities = unis.selected;
+  } else {
+    universities = [];
+  }
+  return { ...answers, universities };
+}
 
 type PanelGeometry = {
   fromX: number;
@@ -25,21 +47,52 @@ export default function Home() {
   const [view, setView] = useState<"hero" | "onboarding">("hero");
   const [panel, setPanel] = useState<PanelGeometry | null>(null);
   const [exiting, setExiting] = useState(false);
+  const [wizardState, setWizardState] = useState<WizardState>("answering");
+  const [answers, setAnswers] = useState<Answers | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  function handleWizardComplete(answers: Answers) {
+  async function runScoring(forAnswers: Answers) {
+    setWizardState("loading");
+    try {
+      const res = await fetch("/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: toApiAnswers(forAnswers) }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) {
+        const message =
+          (json as { error?: string })?.error ?? `HTTP ${res.status}`;
+        throw new Error(message);
+      }
+      const results = json as ScoringResults;
+      window.localStorage.setItem(
+        SCORING_RESULTS_KEY,
+        JSON.stringify(results),
+      );
+      setExiting(true);
+      window.setTimeout(() => router.push("/dashboard"), 1000);
+    } catch (err) {
+      console.error("/api/score failed:", err);
+      setWizardState("error");
+    }
+  }
+
+  function handleWizardComplete(finalAnswers: Answers) {
     try {
       window.localStorage.setItem(
-        WIZARD_STORAGE_KEY,
-        JSON.stringify(answers),
+        WIZARD_ANSWERS_KEY,
+        JSON.stringify(finalAnswers),
       );
     } catch (err) {
       console.error("Failed to persist wizard answers:", err);
     }
-    setExiting(true);
-    window.setTimeout(() => {
-      router.push("/dashboard");
-    }, 1000);
+    setAnswers(finalAnswers);
+    void runScoring(finalAnswers);
+  }
+
+  function handleRetry() {
+    if (answers) void runScoring(answers);
   }
 
   function handleCta() {
@@ -191,10 +244,53 @@ export default function Home() {
             transition={{ duration: 0.3, ease, delay: exiting ? 0 : 0.55 }}
             className="absolute inset-0 overflow-y-auto"
           >
-            <OnboardingWizard onComplete={handleWizardComplete} />
+            {wizardState === "answering" ? (
+              <OnboardingWizard onComplete={handleWizardComplete} />
+            ) : wizardState === "loading" ? (
+              <LoadingPanel />
+            ) : (
+              <ErrorPanel onRetry={handleRetry} />
+            )}
           </motion.div>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+function LoadingPanel() {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center text-white">
+      <motion.div
+        animate={{ opacity: [0.4, 1, 0.4], scale: [1, 1.04, 1] }}
+        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        className="font-display text-2xl font-medium tracking-tight"
+      >
+        analyzing your profile...
+      </motion.div>
+      <p className="mt-4 max-w-xs text-sm text-indigo-100">
+        Comparing your stats to admit data and writing your personalized read.
+      </p>
+    </div>
+  );
+}
+
+function ErrorPanel({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center text-white">
+      <div className="font-display text-2xl font-medium tracking-tight">
+        Something went wrong.
+      </div>
+      <p className="mt-3 max-w-xs text-sm text-indigo-100">
+        We could not reach the scoring service. Your answers are safe.
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-white px-6 text-sm font-medium text-[#4F46E5] transition hover:bg-indigo-50"
+      >
+        Try again
+      </button>
     </div>
   );
 }
