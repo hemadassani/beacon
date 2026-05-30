@@ -37,7 +37,7 @@ export default async function DashboardPage() {
 
   const answers = profileRow?.answers as Answers | null;
   if (!answers) {
-    redirect("/");
+    redirect("/auth/post-signin");
   }
 
   const { data: latestResultRow } = await supabase
