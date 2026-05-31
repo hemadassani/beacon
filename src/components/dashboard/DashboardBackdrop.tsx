@@ -4,7 +4,8 @@ export function DashboardBackdrop() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className="pointer-events-none fixed inset-0 overflow-hidden"
+      style={{ zIndex: 0 }}
     >
       <svg className="absolute inset-0 h-full w-full">
         <defs>
